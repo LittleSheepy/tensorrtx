@@ -3,3 +3,13 @@
 */*.wts
 */*.ppm
 *idea*
+yolov5/bin/yolov5.pdb
+yolov5/bin/yolov5.ilk
+yolov5/bin/yolov5.exe
+yolov5/bin/lib/DeepBlueOCR.lib
+yolov5/bin/lib/DeepBlueOCR.pdb
+*.lib
+*.pdb
+*.exe
+*.ilk
+*.engine

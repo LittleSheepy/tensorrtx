@@ -3,193 +3,157 @@
 #include "cuda_runtime_api.h"
 #include <opencv2/opencv.hpp>
 //#include "logging.h"
-#include "common.hpp"
-#include "yolov5.h"
-#include "cfg.h"
-//#include "cJSON.h"
-using namespace DeepBlueDet;
+#include "common.h"
+#include "yolov5net.h"
+#include "utils.h"
+#include "cuda_utils.h"
 using namespace nvinfer1;
 using namespace std;
-cv::Rect get_rect(cv::Mat& img, float bbox[4]);
-//std::string IMG_NAME;
-int main1(int argc, char** argv) {
-	/**/
-	// 配置
-	Config cfg("cfg.txt");
-	cout << cfg.getLines() << endl;
-	cout << "X1=" << cfg.getCFG("X1") << endl;
-	//cout << cfg.getCFG("cxx") << endl;
-	int X1 = atoi(cfg.getCFG("X1").c_str());
-	int Y1 = atoi(cfg.getCFG("Y1").c_str());
-	int X2 = atoi(cfg.getCFG("X2").c_str());
-	int Y2 = atoi(cfg.getCFG("Y2").c_str());
+int yolov5(int argc, char** argv) {
+    cudaSetDevice(DEVICE);
 
+    std::string wts_name = "";
+    std::string engine_name = "";
+    bool is_p6 = false;
+    float gd = 0.0f, gw = 0.0f;
+    std::string img_dir;
+    if (!parse_args(argc, argv, wts_name, engine_name, is_p6, gd, gw, img_dir)) {
+        std::cerr << "arguments not right!" << std::endl;
+        std::cerr << "./yolov5 -s [.wts] [.engine] [s/m/l/x/s6/m6/l6/x6 or c/c6 gd gw]  // serialize model to plan file" << std::endl;
+        std::cerr << "./yolov5 -d [.engine] ../samples  // deserialize plan file and run inference" << std::endl;
+        return -1;
+    }
 
-	/*
-	// cJson
-	FILE *f;//输入文件
-	long len;//文件长度
-	char *content;//文件内容
-	cJSON *json;//封装后的json对象
-	f = fopen("./cfg.json", "rb");
-	fseek(f, 0, SEEK_END);
-	len = ftell(f);
-	fseek(f, 0, SEEK_SET);
-	content = (char*)malloc(len + 1);
-	fread(content, 1, len, f);
-	fclose(f);
-
-	json = cJSON_Parse(content);
-	if (!json) {
-		printf("Error before: [%s]\n", cJSON_GetErrorPtr());
-	}
-	cJSON *name = cJSON_GetObjectItem(json, "name");
-	cout << "cjson name=" << name->valuestring << endl;
-
-	cJSON *Roi = cJSON_GetObjectItem(json, "aaa");
-	cout << "cjson name=" << Roi->valuestring << endl;
-	*/
-
-	YOLOV5* yolov5 = new YOLOV5();
-	yolov5->Init();
-	cv::VideoCapture capture;
-	bool res1 = capture.isOpened();
-	bool res = capture.open(0);
-	while (true) {
-		cv::Mat img_org;
-		bool red_res = capture.read(img_org);
-		//capture >> img;
-		cv::Mat img = img_org(cv::Rect(X1, Y1, X2 - X1, Y2 - Y1));
-		auto res = yolov5->predict(img);
-		cout << img.cols << "," << img.rows << endl;
-
-		cv::Mat img_lab(img.rows, img.cols + 200, CV_8UC3);
-		//auto& res = batch_res[0];
-        std::cout << "size:" <<res.size() << std::endl;
-        std::string str = "";
-		std::string label_list[] = { "0","1","2", "3","4", "5","6", "7","8", "9",
-							 "A", "b","C", "d","E", "F","J","h","P","t",
-							 "L", "U", "u","o", "_" };
-		for (size_t j = 0; j < res.size(); j++) {
-			cv::Rect r = get_rect(img, res[j].bbox);
-			cv::rectangle(img, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
-            cv::putText(img, std::string(label_list[(int)res[j].class_id]), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-            str.append(std::string(label_list[(int)res[j].class_id]));
+    // create a model using the API directly and serialize it to a stream
+    if (!wts_name.empty()) {
+        IHostMemory* modelStream{ nullptr };
+        APIToModel(BATCH_SIZE, &modelStream, is_p6, gd, gw, wts_name);
+        assert(modelStream != nullptr);
+        std::ofstream p(engine_name, std::ios::binary);
+        if (!p) {
+            std::cerr << "could not open plan output file" << std::endl;
+            return -1;
         }
-		img.copyTo(img_lab(cv::Rect(0, 0, img.cols, img.rows)));
+        p.write(reinterpret_cast<const char*>(modelStream->data()), modelStream->size());
+        modelStream->destroy();
+        return 0;
+    }
 
-		cv::putText(img_lab, str, cv::Point(650, 200), cv::FONT_HERSHEY_PLAIN, 3, cv::Scalar(0xFF, 0xFF, 0xFF), 4);
-        std::cout << "str:"<<str<<std::endl;
-		cv::imshow("摄像头 ", img_lab);
-		cv::waitKey(30); 
-	}
-	return 0;
-}
+    // deserialize the .engine and run inference
+    std::ifstream file(engine_name, std::ios::binary);
+    if (!file.good()) {
+        std::cerr << "read " << engine_name << " error!" << std::endl;
+        return -1;
+    }
+    char *trtModelStream = nullptr;
+    size_t size = 0;
+    file.seekg(0, file.end);
+    size = file.tellg();
+    file.seekg(0, file.beg);
+    trtModelStream = new char[size];
+    assert(trtModelStream);
+    file.read(trtModelStream, size);
+    file.close();
 
-int main2(int argc, char** argv) {
-	/**/
-	// 配置
-	Config cfg("cfg.txt");
-	cout << cfg.getLines() << endl;
-	cout << "X1=" << cfg.getCFG("X1") << endl;
-	//cout << cfg.getCFG("cxx") << endl;
-	int X1 = atoi(cfg.getCFG("X1").c_str());
-	int Y1 = atoi(cfg.getCFG("Y1").c_str());
-	int X2 = atoi(cfg.getCFG("X2").c_str());
-	int Y2 = atoi(cfg.getCFG("Y2").c_str());
+    std::vector<std::string> file_names;
+    if (read_files_in_dir(img_dir.c_str(), file_names) < 0) {
+        std::cerr << "read_files_in_dir failed." << std::endl;
+        return -1;
+    }
 
-	YOLOV5* yolov5 = new YOLOV5();
-	yolov5->Init();
-	std::vector<std::string> file_names;
-	if (read_files_in_dir("../images/", file_names) < 0) {
-		std::cout << "read_files_in_dir failed." << std::endl;
-		return -1;
-	}
-	int fcount = 0;
+    // prepare input data ---------------------------
+    static float data[BATCH_SIZE * 3 * INPUT_H * INPUT_W];
+    //for (int i = 0; i < 3 * INPUT_H * INPUT_W; i++)
+    //    data[i] = 1.0;
+    static float prob[BATCH_SIZE * OUTPUT_SIZE];
+    IRuntime* runtime = createInferRuntime(gLogger);
+    assert(runtime != nullptr);
+    ICudaEngine* engine = runtime->deserializeCudaEngine(trtModelStream, size);
+    assert(engine != nullptr);
+    IExecutionContext* context = engine->createExecutionContext();
+    assert(context != nullptr);
+    delete[] trtModelStream;
+    assert(engine->getNbBindings() == 2);
+    void* buffers[2];
+    // In order to bind the buffers, we need to know the names of the input and output tensors.
+    // Note that indices are guaranteed to be less than IEngine::getNbBindings()
+    const int inputIndex = engine->getBindingIndex(INPUT_BLOB_NAME);
+    const int outputIndex = engine->getBindingIndex(OUTPUT_BLOB_NAME);
+    assert(inputIndex == 0);
+    assert(outputIndex == 1);
+    // Create GPU buffers on device
+    CUDA_CHECK(cudaMalloc(&buffers[inputIndex], BATCH_SIZE * 3 * INPUT_H * INPUT_W * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&buffers[outputIndex], BATCH_SIZE * OUTPUT_SIZE * sizeof(float)));
+    // Create stream
+    cudaStream_t stream;
+    CUDA_CHECK(cudaStreamCreate(&stream));
 
-	std::vector<std::string> rec_label_list; 
-	std::string path = "../predict.txt";
-	std::ofstream fout(path);
-	for (int f = 0; f < (int)file_names.size(); f++) {
-		rec_label_list.clear();
-		std::string strFileName = file_names[fcount++];
-		//IMG_NAME = strFileName;
-		cv::Mat img_org = cv::imread("../images/" + strFileName);
-		if (img_org.empty()) continue;
-		cv::Mat img = img_org(cv::Rect(X1, Y1, X2 - X1, Y2 - Y1));
-		cv::Mat pr_img = preprocess_img(img); // letterbox BGR to RGB
-		rec_label_list = yolov5->predict_str(pr_img);
-		std::cout << "rec_label_list:" << rec_label_list[0] << std::endl;
-		if (rec_label_list.size() > 0) {
-			std::cout << strFileName << "result : " << rec_label_list[0] << std::endl;
-			fout << strFileName << ";" << rec_label_list[0] << std::endl;
-		}
-		else {
-			std::cout << file_names[fcount++] << "result : " << "null" << std::endl;
-			fout << strFileName << ";" << "null" << std::endl;
-		}
-		//cv::imwrite(file_names[fcount], img)
-	}
-	fout.close();
-	while (true) {}
+    int fcount = 0;
+    for (int f = 0; f < (int)file_names.size(); f++) {
+        fcount++;
+        if (fcount < BATCH_SIZE && f + 1 != (int)file_names.size()) continue;
+        for (int b = 0; b < fcount; b++) {
+            cv::Mat img = cv::imread(img_dir + "/" + file_names[f - fcount + 1 + b]);
+            if (img.empty()) continue;
+            cv::Mat pr_img = preprocess_img(img, INPUT_W, INPUT_H); // letterbox BGR to RGB
+            int i = 0;
+            for (int row = 0; row < INPUT_H; ++row) {
+                uchar* uc_pixel = pr_img.data + row * pr_img.step;
+                for (int col = 0; col < INPUT_W; ++col) {
+                    data[b * 3 * INPUT_H * INPUT_W + i] = (float)uc_pixel[2] / 255.0;
+                    data[b * 3 * INPUT_H * INPUT_W + i + INPUT_H * INPUT_W] = (float)uc_pixel[1] / 255.0;
+                    data[b * 3 * INPUT_H * INPUT_W + i + 2 * INPUT_H * INPUT_W] = (float)uc_pixel[0] / 255.0;
+                    uc_pixel += 3;
+                    ++i;
+                }
+            }
+        }
+
+        // Run inference
+        auto start = std::chrono::system_clock::now();
+        doInference(*context, stream, buffers, data, prob, BATCH_SIZE);
+        auto end = std::chrono::system_clock::now();
+        std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+        std::vector<std::vector<Yolo::Detection>> batch_res(fcount);
+        for (int b = 0; b < fcount; b++) {
+            auto& res = batch_res[b];
+            nms(res, &prob[b * OUTPUT_SIZE], CONF_THRESH, NMS_THRESH);
+        }
+        for (int b = 0; b < fcount; b++) {
+            auto& res = batch_res[b];
+            //std::cout << res.size() << std::endl;
+            cv::Mat img = cv::imread(img_dir + "/" + file_names[f - fcount + 1 + b]);
+            for (size_t j = 0; j < res.size(); j++) {
+                cv::Rect r = get_rect(img, res[j].bbox);
+                cv::rectangle(img, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
+                cv::putText(img, std::to_string((int)res[j].class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+            }
+            cv::imwrite("_" + file_names[f - fcount + 1 + b], img);
+        }
+        fcount = 0;
+    }
+
+    // Release stream and buffers
+    cudaStreamDestroy(stream);
+    CUDA_CHECK(cudaFree(buffers[inputIndex]));
+    CUDA_CHECK(cudaFree(buffers[outputIndex]));
+    // Destroy the engine
+    context->destroy();
+    engine->destroy();
+    runtime->destroy();
+
+    // Print histogram of the output distribution
+    //std::cout << "\nOutput:\n\n";
+    //for (unsigned int i = 0; i < OUTPUT_SIZE; i++)
+    //{
+    //    std::cout << prob[i] << ", ";
+    //    if (i % 10 == 0) std::cout << std::endl;
+    //}
+    //std::cout << std::endl;
+
+    return 0;
 }
 
 int main(int argc, char** argv) {
-	/**/
-	// 配置
-	Config cfg("cfg.txt");
-	cout << cfg.getLines() << endl;
-	cout << "X1=" << cfg.getCFG("X1") << endl;
-	//cout << cfg.getCFG("cxx") << endl;
-	int X1 = atoi(cfg.getCFG("X1").c_str());
-	int Y1 = atoi(cfg.getCFG("Y1").c_str());
-	int X2 = atoi(cfg.getCFG("X2").c_str());
-	int Y2 = atoi(cfg.getCFG("Y2").c_str());
-
-	YOLOV5* yolov5 = new YOLOV5();
-	yolov5->Init();
-	std::vector<std::string> file_names;
-	if (read_files_in_dir("../images/", file_names) < 0) {
-		std::cout << "read_files_in_dir failed." << std::endl;
-		return -1;
-	}
-	int fcount = 0;
-
-	std::vector<std::string> rec_label_list;
-	std::string path = "../predict.txt";
-	std::ofstream fout(path);
-	for (int f = 0; f < (int)file_names.size(); f++) {
-		rec_label_list.clear();
-		std::string strFileName = file_names[fcount++];
-		//IMG_NAME = strFileName;
-		cv::Mat img_org = cv::imread("../images/" + strFileName);
-		if (img_org.empty()) continue;
-		cv::Mat img = img_org(cv::Rect(X1, Y1, X2 - X1, Y2 - Y1));
-		//cv::Mat pr_img = preprocess_img(img); // letterbox BGR to RGB
-		auto res = yolov5->predict(img);
-		cout << img.cols << "," << img.rows << endl;
-
-		cv::Mat img_lab(img.rows, img.cols + 200, CV_8UC3);
-		//auto& res = batch_res[0];
-		std::cout << "size:" << res.size() << std::endl;
-		std::string str = "";
-		std::string label_list[] = { "0","1","2", "3","4", "5","6", "7","8", "9",
-							 "A", "b","C", "d","E", "F","J","h","P","t",
-							 "L", "U", "u","o", "_" };
-		for (size_t j = 0; j < res.size(); j++) {
-			cv::Rect r = get_rect(img, res[j].bbox);
-			cv::rectangle(img, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
-			cv::putText(img, std::string(label_list[(int)res[j].class_id]), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-			str.append(std::string(label_list[(int)res[j].class_id]));
-		}
-		img.copyTo(img_lab(cv::Rect(0, 0, img.cols, img.rows)));
-
-		cv::putText(img_lab, str, cv::Point(650, 200), cv::FONT_HERSHEY_PLAIN, 3, cv::Scalar(0xFF, 0xFF, 0xFF), 4);
-		std::cout << "str:" << str << std::endl;
-		cv::imwrite("../result/result.jpg", img_lab);
-		//cv::imshow("摄像头 ", img_lab);
-		//cv::waitKey(30);
-	}
-	fout.close();
-	while (true) {}
+	yolov5(argc, argv);
 }
