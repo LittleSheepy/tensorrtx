@@ -4,14 +4,15 @@
 #include <thrust/execution_policy.h>
 #include <thrust/gather.h>
 #include <thrust/system/cuda/detail/cub/device/device_radix_sort.cuh>
+#include <device_launch_parameters.h>
 #include <cmath>
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
 #include <cstdint>
 #include <vector>
-#include "BatchedNmsPlugin.h"
-#include "./cuda_utils.h"
+#include "../include/BatchedNmsPlugin.h"
+#include "../include/cuda_utils.h"
 
 namespace nvinfer1 {
 

@@ -11,7 +11,9 @@ The Pytorch implementation is [facebookresearch/detectron2](https://github.com/f
 ## Test Environment
 
 - GTX2080Ti / Ubuntu16.04 / cuda10.2 / cudnn8.0.4 / TensorRT7.2.1 / OpenCV4.2
-- GTX2080Ti / win10 / cuda10.2 / cudnn8.0.4 / TensorRT7.2.1 / OpenCV4.2 / VS2017 (need to replace function corresponding to the dirent.h and add "--extended-lambda" in CUDA C/C++ -> Command Line -> Other options)
+- GTX2080Ti / win10 / cuda10.2 / cudnn8.0.4 / TensorRT7.2.1 / OpenCV4.2 / VS2017 
+(need to replace function corresponding to the dirent.h and add 
+"--extended-lambda" in CUDA C/C++ -> Command Line -> Other options)
 
 TensorRT7.2 is recomended because Resize layer in 7.0 with kLINEAR mode is a little different with opencv. You can also implement data preprocess out of tensorrt if you want to use TensorRT7.0 or more previous version. 
 

@@ -1,5 +1,7 @@
 #include "MaskRcnnInferencePlugin.h"
 
+#include <device_launch_parameters.h>
+#include <cuda_runtime_api.h>
 namespace nvinfer1 {
 
 __device__ float Logist(float data) { return 1.0f / (1.0f + expf(-data)); }
@@ -45,7 +47,8 @@ int maskRcnnInference(int batchSize,
         const int max_threads = 1024;
         int blocksPerGrid = ceil(static_cast<float>(nthreads) / max_threads);
         // TODO: can implement this function with thrust?
-        MaskRcnnInferenceKernel << <blocksPerGrid, max_threads, 0, stream >> > (
+		//MaskRcnnInferenceKernel << <blocksPerGrid, max_threads, 0, stream >> > (
+		MaskRcnnInferenceKernel << <blocksPerGrid, max_threads>> > (
             nthreads,
             detections_per_im,
             output_size,

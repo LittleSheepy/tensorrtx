@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 #include <opencv2/opencv.hpp>
 #include "backbone.hpp"
 #include "RpnDecodePlugin.h"
@@ -72,7 +73,7 @@ ITensor* DataPreprocess(INetworkDefinition *network, ITensor& input) {
     int width = input_hw.d[1];
 
     // resize
-    float ratio = MIN_SIZE / static_cast<float>(std::min(height, width));
+    float ratio = MIN_SIZE / static_cast<float>(min(height, width));
     float newh = 0, neww = 0;
     if (height < width) {
         newh = MIN_SIZE;
@@ -81,8 +82,8 @@ ITensor* DataPreprocess(INetworkDefinition *network, ITensor& input) {
         newh = ratio * height;
         neww = MIN_SIZE;
     }
-    if (std::max(newh, neww) > MAX_SIZE) {
-        ratio = MAX_SIZE / static_cast<float>(std::max(newh, neww));
+    if (max(newh, neww) > MAX_SIZE) {
+        ratio = MAX_SIZE / static_cast<float>(max(newh, neww));
         newh = newh * ratio;
         neww = neww * ratio;
     }
@@ -116,7 +117,7 @@ ITensor* DataPreprocess(INetworkDefinition *network, ITensor& input) {
 }
 
 void calculateRatio() {
-    float ratio = MIN_SIZE / static_cast<float>(std::min(INPUT_H, INPUT_W));
+    float ratio = MIN_SIZE / static_cast<float>(min(INPUT_H, INPUT_W));
     float newh = 0, neww = 0;
     if (INPUT_H < INPUT_W) {
         newh = MIN_SIZE;
@@ -125,8 +126,8 @@ void calculateRatio() {
         newh = ratio * INPUT_H;
         neww = MIN_SIZE;
     }
-    if (std::max(newh, neww) > MAX_SIZE) {
-        ratio = MAX_SIZE / static_cast<float>(std::max(newh, neww));
+    if (max(newh, neww) > MAX_SIZE) {
+        ratio = MAX_SIZE / static_cast<float>(max(newh, neww));
         newh = newh * ratio;
         neww = neww * ratio;
     }
@@ -552,7 +553,7 @@ int main(int argc, char** argv) {
                     }
                 }
             }
-            cv::imwrite("_" + fileList[f - fcount + 1 + b], img);
+            cv::imwrite("../_" + fileList[f - fcount + 1 + b], img);
         }
         fcount = 0;
     }

@@ -3,13 +3,13 @@
 #include <thrust/execution_policy.h>
 #include <thrust/gather.h>
 #include <thrust/system/cuda/detail/cub/device/device_radix_sort.cuh>
-#include <thrust/system/cuda/detail/cub/iterator/counting_input_iterator.cuh>
+#include <cub/iterator/counting_input_iterator.cuh>
 
 #include <algorithm>
 #include <cstdint>
 
 #include "PredictorDecodePlugin.h"
-#include "./cuda_utils.h"
+#include "cuda_utils.h"
 
 namespace nvinfer1 {
 
@@ -85,10 +85,10 @@ size_t workspace_size, cudaStream_t stream) {
             float pred_h = exp(deltas.w / bbox_reg_weights_d[3]) * h;
 
             boxes = float4{
-              max(0.0f, pred_ctr_x - 0.5f * pred_w),
-              max(0.0f, pred_ctr_y - 0.5f * pred_h),
-              min(pred_ctr_x + 0.5f * pred_w, static_cast<float>(image_width)),
-              min(pred_ctr_y + 0.5f * pred_h, static_cast<float>(image_width))
+			  max(0.0f, pred_ctr_x - 0.5f * pred_w),
+			  max(0.0f, pred_ctr_y - 0.5f * pred_h),
+			  min(pred_ctr_x + 0.5f * pred_w, static_cast<float>(image_width)),
+			  min(pred_ctr_y + 0.5f * pred_h, static_cast<float>(image_width))
             };
 
             // filter empty boxes

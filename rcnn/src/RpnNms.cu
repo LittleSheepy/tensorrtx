@@ -2,6 +2,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/gather.h>
 #include <thrust/system/cuda/detail/cub/device/device_radix_sort.cuh>
+#include <device_launch_parameters.h>
 
 #include <algorithm>
 #include <iostream>
@@ -10,8 +11,8 @@
 #include <vector>
 #include <cmath>
 
-#include "RpnNmsPlugin.h"
-#include "./cuda_utils.h"
+#include "../include/RpnNmsPlugin.h"
+#include "../include/cuda_utils.h"
 
 namespace nvinfer1 {
 
