@@ -13,3 +13,7 @@ yolov5/bin/lib/DeepBlueOCR.pdb
 *.exe
 *.ilk
 *.engine
+dbnet/*.cpp
+dbnet_temp/*.cpp
+dbnet/*
+dbnet_temp/*
