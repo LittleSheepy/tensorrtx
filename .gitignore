@@ -1,7 +1,7 @@
 */build
 */*/build
-*/*.wts
-*/*.ppm
+*.wts
+*.ppm
 *idea*
 yolov5/bin/yolov5.pdb
 yolov5/bin/yolov5.ilk
@@ -13,7 +13,4 @@ yolov5/bin/lib/DeepBlueOCR.pdb
 *.exe
 *.ilk
 *.engine
-dbnet/*.cpp
-dbnet_temp/*.cpp
-dbnet/*
-dbnet_temp/*
+*.pth

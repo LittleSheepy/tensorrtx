@@ -87,7 +87,7 @@ ICudaEngine* createEngine(unsigned int maxBatchSize, IBuilder* builder, IBuilder
     ITensor* data = network->addInput(INPUT_BLOB_NAME, dt, Dims4{ 1, 3, -1, -1 });
     assert(data);
 
-    std::map<std::string, Weights> weightMap = loadWeights("../DBNet.wts");
+    std::map<std::string, Weights> weightMap = loadWeights("./DBNet.wts");
     Weights emptywts{ DataType::kFLOAT, nullptr, 0 };
 
     /* ------ Resnet18 backbone------ */
@@ -407,7 +407,7 @@ int main(int argc, char** argv) {
         IHostMemory* modelStream{ nullptr };
         APIToModel(1, &modelStream);
         assert(modelStream != nullptr);
-        std::ofstream p("../DBNet.engine", std::ios::binary);
+        std::ofstream p("DBNet.engine", std::ios::binary);
         if (!p) {
             std::cerr << "could not open plan output file" << std::endl;
             return -1;
@@ -417,7 +417,7 @@ int main(int argc, char** argv) {
         return 0;
     }
     else if (argc == 3 && std::string(argv[1]) == "-d") {
-        std::ifstream file("../DBNet.engine", std::ios::binary);
+        std::ifstream file("DBNet.engine", std::ios::binary);
         if (file.good()) {
             file.seekg(0, file.end);
             size = file.tellg();
@@ -541,7 +541,7 @@ int main(int argc, char** argv) {
             //std::cout << "After LT =  " << order_rect[0] << ", After RD = " << order_rect[2] <<  std::endl;            
         }
 
-        cv::imwrite("../_" + f, src_img);
+        cv::imwrite("_" + f, src_img);
         std::cout << "write image done." << std::endl;
         //cv::waitKey(0);
 
