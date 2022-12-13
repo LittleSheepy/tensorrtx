@@ -136,7 +136,7 @@ ICudaEngine* createLenetEngine(unsigned int maxBatchSize, IBuilder* builder, IBu
 
     // Build engine
     builder->setMaxBatchSize(maxBatchSize);
-    config->setMaxWorkspaceSize(1 << 20);
+    config->setMaxWorkspaceSize(16 << 20);
     ICudaEngine* engine = builder->buildEngineWithConfig(*network, *config);
 
     // Don't need the network any more
@@ -221,7 +221,7 @@ int main(int argc, char** argv)
         APIToModel(1, &modelStream);
         assert(modelStream != nullptr);
 
-        std::ofstream p("lenet5.engine");
+        std::ofstream p("lenet5.engine", std::ios::binary);
         if (!p)
         {
             std::cerr << "could not open plan output file" << std::endl;

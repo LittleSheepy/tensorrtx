@@ -3,27 +3,21 @@
 #include "cuda_runtime_api.h"
 #include "logging.h"
 #include "common.hpp"
+
 #define DEVICE 0
-#define NET s  // s m l x
-#define NETSTRUCT(str) createEngine_##str
-#define CREATENET(net) NETSTRUCT(net)
-#define STR1(x) #x
-#define STR2(x) STR1(x)
 // #define USE_FP16  // comment out this if want to use FP16
 #define CONF_THRESH 0.5
 #define BATCH_SIZE 1
+
+using namespace nvinfer1;
+
 // stuff we know about the network and the input/output blobs
 static const int INPUT_H = 816;
 static const int INPUT_W = 672;
 static const int OUTPUT_SIZE = 672*816;
-
 const char* INPUT_BLOB_NAME = "data";
 const char* OUTPUT_BLOB_NAME = "prob";
-
-using namespace nvinfer1;
-
 static Logger gLogger;
-
 
 cv::Mat preprocess_img(cv::Mat& img) {
     int w, h, x, y;
@@ -46,8 +40,6 @@ cv::Mat preprocess_img(cv::Mat& img) {
     re.copyTo(out(cv::Rect(x, y, re.cols, re.rows)));
     return out;
 }
-
-
 
 ILayer* doubleConv(INetworkDefinition *network, std::map<std::string, Weights>& weightMap, ITensor& input, int outch, int ksize, std::string lname, int midch){
     // Weights emptywts{DataType::kFLOAT, nullptr, 0};
@@ -72,7 +64,6 @@ ILayer* doubleConv(INetworkDefinition *network, std::map<std::string, Weights>& 
 }
 
 ILayer* down(INetworkDefinition *network, std::map<std::string, Weights>& weightMap, ITensor& input,  int outch, int p, std::string lname){
-    
     IPoolingLayer* pool1 = network->addPoolingNd(input, PoolingType::kMAX, DimsHW{2, 2});
     assert(pool1);
     ILayer* dcov1 = doubleConv(network,weightMap,*pool1->getOutput(0),outch,3,lname+".maxpool_conv.1",outch);
@@ -97,28 +88,26 @@ ILayer* up(INetworkDefinition *network, std::map<std::string, Weights>& weightMa
     // IPoolingLayer* pool1 = network->addPooling(dcov1, PoolingType::kMAX, DimsHW{2, 2});
     // pool1->setStrideNd(DimsHW{2, 2});
     // dcov1->add_pading
-    ILayer* pad1 = network->addPaddingNd(*deconv1->getOutput(0),DimsHW{diffx / 2, diffy / 2},DimsHW{diffx - (diffx / 2), diffy - (diffy / 2)});
+    ILayer* pad1 = network->addPaddingNd(*deconv1->getOutput(0), DimsHW{diffx / 2, diffy / 2}, DimsHW{diffx - (diffx / 2), diffy - (diffy / 2)});
     // dcov1->setPaddingNd(DimsHW{diffx / 2, diffx - diffx / 2},DimsHW{diffy / 2, diffy - diffy / 2});
-    ITensor* inputTensors[] = {&input2,pad1->getOutput(0)};
+    ITensor* inputTensors[] = {&input2, pad1->getOutput(0)};
     auto cat = network->addConcatenation(inputTensors, 2);
     assert(cat);
-    if (midch==64){
+    if (midch == 64) {
         ILayer* dcov1 = doubleConv(network,weightMap,*cat->getOutput(0),outch,3,lname+".conv",outch);
         assert(dcov1);
         return dcov1;
-    }else{
+    } else {
         int midch1 = outch/2;
         ILayer* dcov1 = doubleConv(network,weightMap,*cat->getOutput(0),midch1,3,lname+".conv",outch);
         assert(dcov1);
         return dcov1;
     }
-    
     // assert(dcov1);
-
     // return dcov1;
 }
 
-ILayer* outConv(INetworkDefinition *network, std::map<std::string, Weights>& weightMap, ITensor& input,  int outch, std::string lname){
+ILayer* outConv(INetworkDefinition *network, std::map<std::string, Weights>& weightMap, ITensor& input, int outch, std::string lname) {
     // Weights emptywts{DataType::kFLOAT, nullptr, 0};
 
     IConvolutionLayer* conv1 = network->addConvolutionNd(input, 1, DimsHW{1, 1}, weightMap[lname + ".conv.weight"], weightMap[lname + ".conv.bias"]);
@@ -129,29 +118,27 @@ ILayer* outConv(INetworkDefinition *network, std::map<std::string, Weights>& wei
     return conv1;
 }
 
-
-
-ICudaEngine* createEngine_l(unsigned int maxBatchSize, IBuilder* builder, IBuilderConfig* config, DataType dt) {
+ICudaEngine* createEngine(unsigned int maxBatchSize, IBuilder* builder, IBuilderConfig* config, DataType dt) {
     INetworkDefinition* network = builder->createNetworkV2(0U);
 
     // Create input tensor of shape {3, INPUT_H, INPUT_W} with name INPUT_BLOB_NAME
     ITensor* data = network->addInput(INPUT_BLOB_NAME, dt, Dims3{ 3, INPUT_H, INPUT_W });
     assert(data);
 
-    std::map<std::string, Weights> weightMap = loadWeights("/home/sycv/workplace/pengyuzhou/tensorrtx/unet/unet_816_672.wts");
+    std::map<std::string, Weights> weightMap = loadWeights("../unet.wts");
     Weights emptywts{DataType::kFLOAT, nullptr, 0};
 
     // build network
-    auto x1 = doubleConv(network,weightMap,*data,64,3,"inc",64);
-    auto x2 = down(network,weightMap,*x1->getOutput(0),128,1,"down1");
-    auto x3 = down(network,weightMap,*x2->getOutput(0),256,1,"down2");
-    auto x4 = down(network,weightMap,*x3->getOutput(0),512,1,"down3");
-    auto x5 = down(network,weightMap,*x4->getOutput(0),512,1,"down4");
-    ILayer* x6 = up(network,weightMap,*x5->getOutput(0),*x4->getOutput(0),512,512,512,"up1");
-    ILayer* x7 = up(network,weightMap,*x6->getOutput(0),*x3->getOutput(0),256,256,256,"up2");
-    ILayer* x8 = up(network,weightMap,*x7->getOutput(0),*x2->getOutput(0),128,128,128,"up3");
-    ILayer* x9 = up(network,weightMap,*x8->getOutput(0),*x1->getOutput(0),64,64,64,"up4");
-    ILayer* x10 = outConv(network,weightMap,*x9->getOutput(0),OUTPUT_SIZE,"outc");
+    auto x1 = doubleConv(network, weightMap, *data, 64, 3, "inc", 64);
+    auto x2 = down(network, weightMap, *x1->getOutput(0), 128, 1, "down1");
+    auto x3 = down(network, weightMap, *x2->getOutput(0), 256, 1, "down2");
+    auto x4 = down(network, weightMap, *x3->getOutput(0), 512, 1, "down3");
+    auto x5 = down(network, weightMap, *x4->getOutput(0), 512, 1, "down4");
+    ILayer* x6 = up(network, weightMap, *x5->getOutput(0), *x4->getOutput(0), 512, 512, 512, "up1");
+    ILayer* x7 = up(network, weightMap, *x6->getOutput(0), *x3->getOutput(0), 256, 256, 256, "up2");
+    ILayer* x8 = up(network, weightMap, *x7->getOutput(0), *x2->getOutput(0), 128, 128, 128, "up3");
+    ILayer* x9 = up(network, weightMap, *x8->getOutput(0), *x1->getOutput(0), 64, 64, 64, "up4");
+    ILayer* x10 = outConv(network, weightMap, *x9->getOutput(0), OUTPUT_SIZE, "outc");
     std::cout << "set name out" << std::endl;
     x10->getOutput(0)->setName(OUTPUT_BLOB_NAME);
     network->markOutput(*x10->getOutput(0));
@@ -170,14 +157,12 @@ ICudaEngine* createEngine_l(unsigned int maxBatchSize, IBuilder* builder, IBuild
     network->destroy();
 
     // Release host memory
-    for (auto& mem : weightMap)
-    {
+    for (auto& mem : weightMap) {
         free((void*)(mem.second.values));
     }
 
     return engine;
 }
-
 
 void APIToModel(unsigned int maxBatchSize, IHostMemory** modelStream) {
     // Create builder
@@ -185,8 +170,7 @@ void APIToModel(unsigned int maxBatchSize, IHostMemory** modelStream) {
     IBuilderConfig* config = builder->createBuilderConfig();
 
     // Create model to populate the network, then set the outputs and create an engine
-    // ICudaEngine* engine = (CREATENET(NET))(maxBatchSize, builder, config, DataType::kFLOAT);
-    ICudaEngine* engine = createEngine_l(maxBatchSize, builder, config, DataType::kFLOAT);
+    ICudaEngine* engine = createEngine(maxBatchSize, builder, config, DataType::kFLOAT);
     assert(engine != nullptr);
 
     // Serialize the engine
@@ -222,7 +206,7 @@ void doInference(IExecutionContext& context, float* input, float* output, int ba
     CHECK(cudaMemcpyAsync(buffers[inputIndex], input, batchSize * 3 * INPUT_H * INPUT_W * sizeof(float), cudaMemcpyHostToDevice, stream));
     context.enqueue(batchSize, buffers, stream, nullptr);
     CHECK(cudaMemcpyAsync(output, buffers[outputIndex], batchSize * OUTPUT_SIZE * sizeof(float), cudaMemcpyDeviceToHost, stream));
-    //流同步：通过cudaStreamSynchronize()来协调。
+
     cudaStreamSynchronize(stream);
 
     // Release stream and buffers
@@ -231,20 +215,19 @@ void doInference(IExecutionContext& context, float* input, float* output, int ba
     CHECK(cudaFree(buffers[outputIndex]));
 }
 
-struct  Detection{        
-    float mask[INPUT_W*INPUT_H*1];
-    };
+struct Detection {
+    float mask[INPUT_W * INPUT_H * 1];
+};
 
-float sigmoid(float x)
-{
+float sigmoid(float x) {
     return (1 / (1 + exp(-x)));
 }
 
-void process_cls_result(Detection &res, float *output) {    
-    for(int i=0;i<INPUT_W*INPUT_H*1;i++){
+void process_cls_result(Detection &res, float *output) {
+    for (int i = 0; i < INPUT_W * INPUT_H * 1; i++) {
         res.mask[i] = sigmoid(*(output+i));
-        }
     }
+}
 
 int main(int argc, char** argv) {
     cudaSetDevice(DEVICE);
@@ -309,7 +292,7 @@ int main(int argc, char** argv) {
             cv::Mat img = cv::imread(std::string(argv[2]) + "/" + file_names[f - fcount + 1 + b]);
             if (img.empty()) continue;
             cv::Mat pr_img = preprocess_img(img); // letterbox BGR to RGB
-            // cv::imwrite("s_o" + file_names[f - fcount + 1 + b] + "_unet.jpg", pr_img); 
+            // cv::imwrite("s_o" + file_names[f - fcount + 1 + b] + "_unet.jpg", pr_img);
             int i = 0;
             for (int row = 0; row < INPUT_H; ++row) {
                 uchar* uc_pixel = pr_img.data + row * pr_img.step;
@@ -329,8 +312,6 @@ int main(int argc, char** argv) {
         auto end = std::chrono::system_clock::now();
         std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 
-        
-
         std::vector<Detection> batch_res(fcount);
         for (int b = 0; b < fcount; b++) {
             auto& res = batch_res[b];
@@ -341,24 +322,23 @@ int main(int argc, char** argv) {
 
         for (int b = 0; b < fcount; b++) {
             auto& res = batch_res[b];
-            float * mask = res.mask;
-            cv::Mat mask_mat = cv::Mat(INPUT_H,INPUT_W,CV_8UC1); 
-            uchar *ptmp = NULL;
-            for(int i =0; i< INPUT_H ;i++){
+            float* mask = res.mask;
+            cv::Mat mask_mat = cv::Mat(INPUT_H, INPUT_W, CV_8UC1);
+            uchar* ptmp = NULL;
+            for (int i = 0; i < INPUT_H; i++) {
                 ptmp = mask_mat.ptr<uchar>(i);
-                for(int j=0;j<INPUT_W;j++){
-                    float * pixcel = mask+i*INPUT_W+j;
+                for (int j = 0; j < INPUT_W; j++){
+                    float * pixcel = mask + i * INPUT_W + j;
                     // std::cout << *pixcel << std::endl;
-                    if(*pixcel > CONF_THRESH){
+                    if (*pixcel > CONF_THRESH) {
                         ptmp[j] = 255;
-                    }
-                    else{
+                    } else {
                         ptmp[j]=0;
                     } 
-                }            
+                }
             }
 
-            cv::imwrite("s_" + file_names[f - fcount + 1 + b] + "_unet.jpg", mask_mat); 
+            cv::imwrite("s_" + file_names[f - fcount + 1 + b] + "_unet.jpg", mask_mat);
         }
         fcount = 0;
     }

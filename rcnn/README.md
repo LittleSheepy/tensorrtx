@@ -1,6 +1,6 @@
 # Rcnn
 
-The Pytorch implementation is [facebookresearch/detectron2](https://github.com/facebookresearch/detectron2).
+The Pytorch implementation is [facebookresearch/detectron2](https://github.com/facebookresearch/detectron2). Now, outputting instance segmentation results on the original image size is available, which is more convenient for engineering applications.
 
 ## Models
 
@@ -103,7 +103,7 @@ sudo ./rcnn -d faster.engine ../samples
   R101-faster: ./configs/COCO-Detection/faster_rcnn_R_101_C4_3x.yaml
   R50-mask: ./configs/COCO-InstanceSegmentation/mask_rcnn_R_50_C4_1x.yaml
   R101-mask: ./configs/COCO-InstanceSegmentation/mask_rcnn_R_101_C4_3x.yaml
-3.set BACKBONE_RESNETTYPE = R50(R101) rcnn.cpp line 13
+3.set BACKBONE_RESNETTYPE = R50(R101) rcnn.cpp line 14
 4.set STRIDE_IN_1X1=true in backbone.hpp
 5.follow how to run
 ```
@@ -116,9 +116,10 @@ sudo ./rcnn -d faster.engine ../samples
   error: __host__ or __device__ annotation on lambda requires --extended-lambda nvcc flag
   ```
 
-- the image preprocess was moved into tensorrt, see DataPreprocess in rcnn.cpp, so the input data is {H, W, C}
+- the image preprocess of sizing and padding was moved out from tensorrt, see DataPreprocess in rcnn.cpp, so the input data is {H, W, C}
+- now, left-right and top-bottom padding preprocessings are optionally available in preprocessImg of common.hpp, and you can set arbitrary sizes of INPUT_H_ and INPUT_W_
 
-- the predicted boxes is corresponding to new image size, so the final boxes need to multiply with the ratio, see calculateRatio in rcnn.cpp
+- the predicted boxes is corresponding to new image size containing padding, so the final boxes need to subtract padding size and multiply with the ratio, see preprocessImg in common.hpp and calculateSize in rcnn.cpp
 
 - tensorrt use fixed input size, if the size of your data is different from the engine, you need to adjust your data and the result.
 
@@ -126,11 +127,24 @@ sudo ./rcnn -d faster.engine ../samples
 
 - you can build fasterRcnn with maskRcnn weights file.
 
+- do initializing for _pre_nms_topk in RpnNmsPlugin,  _count in BatchedNmsPlugin and _num_classes in MaskRcnnInferencePlugin inside class to prevent error assert, because the configurePlugin function is implemented after clone() and before serialize(). one can also set it through constructor.
+
 ## Quantization
 
-1. quantizationType:fp32,fp16,int8. see BuildRcnnModel(rcnn.cpp line 276) for detail.
+1. quantizationType:fp32,fp16,int8. see BuildRcnnModel(rcnn.cpp line 345) for detail.
 
-2. the usage of int8 is same with [tensorrtx/yolov5](../yolov5/README.md), but it has no improvement comparing to fp16.
+2. the usage of int8 is same with [tensorrtx/yolov5](../yolov5/README.md).
+
+## Latency
+
+average cost of doInference(in rcnn.cpp) from second time with batch=1 under the ubuntu environment above, input size: 640(w)*480(h)
+
+|               | fp32  | fp16 | int8 |
+| ------------- | ----- | ---- | ---- |
+| Faster-R50C4  | 138ms | 36ms | 30ms |
+| Faster-R101C4 | 146ms | 38ms | 32ms |
+| Mask-R50C4    | 153ms | 44ms | 33ms |
+| Mask-R101C4   | 168ms | 45ms | 35ms |
 
 ## Plugins
 
