@@ -1,0 +1,7 @@
+*/build
+*/*/build
+*/*.wts
+*/*.ppm
+*idea*
+*/tensorrtx_my/yolov5/bin
+*/tensorrtx_my/yolov5/build
