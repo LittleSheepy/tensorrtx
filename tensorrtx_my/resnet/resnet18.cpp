@@ -151,7 +151,7 @@ ICudaEngine* createEngine(unsigned int maxBatchSize, IBuilder* builder, IBuilder
     ITensor* data = network->addInput(INPUT_BLOB_NAME, dt, Dims3{3, INPUT_H, INPUT_W});
     assert(data);
 
-    std::map<std::string, Weights> weightMap = loadWeights("../resnet18.wts");
+    std::map<std::string, Weights> weightMap = loadWeights("F:/03weights/08trtx_wts/resnet/resnet18.wts");
     Weights emptywts{DataType::kFLOAT, nullptr, 0};
 
     IConvolutionLayer* conv1 = network->addConvolutionNd(*data, 64, DimsHW{7, 7}, weightMap["conv1.weight"], emptywts);
@@ -265,23 +265,23 @@ void doInference(IExecutionContext& context, float* input, float* output, int ba
 
 int main(int argc, char** argv)
 {
-    if (argc != 2) {
-        std::cerr << "arguments not right!" << std::endl;
-        std::cerr << "./resnet18 -s   // serialize model to plan file" << std::endl;
-        std::cerr << "./resnet18 -d   // deserialize plan file and run inference" << std::endl;
-        return -1;
-    }
+    //if (argc != 2) {
+    //    std::cerr << "arguments not right!" << std::endl;
+    //    std::cerr << "./resnet18 -s   // serialize model to plan file" << std::endl;
+    //    std::cerr << "./resnet18 -d   // deserialize plan file and run inference" << std::endl;
+    //    return -1;
+    //}
 
     // create a model using the API directly and serialize it to a stream
     char *trtModelStream{nullptr};
     size_t size{0};
-
-    if (std::string(argv[1]) == "-s") {
+    std::string s_d = "-d";
+    if (s_d == "-s") {
         IHostMemory* modelStream{nullptr};
         APIToModel(1, &modelStream);
         assert(modelStream != nullptr);
 
-        std::ofstream p("resnet18.engine", std::ios::binary);
+        std::ofstream p("F:/03weights/08trtx_wts/resnet/resnet18.engine", std::ios::binary);
         if (!p)
         {
             std::cerr << "could not open plan output file" << std::endl;
@@ -290,8 +290,8 @@ int main(int argc, char** argv)
         p.write(reinterpret_cast<const char*>(modelStream->data()), modelStream->size());
         modelStream->destroy();
         return 1;
-    } else if (std::string(argv[1]) == "-d") {
-        std::ifstream file("resnet18.engine", std::ios::binary);
+    } else if (s_d == "-d") {
+        std::ifstream file("F:/03weights/08trtx_wts/resnet/resnet18.engine", std::ios::binary);
         if (file.good()) {
             file.seekg(0, file.end);
             size = file.tellg();
