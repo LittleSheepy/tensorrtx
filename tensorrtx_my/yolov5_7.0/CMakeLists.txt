@@ -54,11 +54,11 @@ ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Windows")
 	set(CUDA_NVCC_PLAGS ${CUDA_NVCC_PLAGS};-std=c++11; -g; -G;-gencode; arch=compute_75;code=sm_75)
 	find_package(CUDA REQUIRED)
 	include_directories(${CUDA_INCLUDE_DIRS})
-	link_directories("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.2/lib/x64/")
+	link_directories("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.3/lib/x64/")
 	enable_language(CUDA)  # add this line, then no need to setup cuda path in vs
 	
 	# tensorrt
-	set(TRT_DIR "D://tools//TensorRT-7.0.0.11//")  #3
+	set(TRT_DIR "D://tools//TensorRT-8.0.1.6-cu11.3//")  #3
 	include_directories(${TRT_DIR}\\include)
 	link_directories(${TRT_DIR}\\lib)
 	

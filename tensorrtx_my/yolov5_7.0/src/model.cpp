@@ -64,12 +64,14 @@ static int get_depth(int x, float gd) {
 }
 
 static IScaleLayer* addBatchNorm2d(INetworkDefinition *network, std::map<std::string, Weights>& weightMap, ITensor& input, std::string lname, float eps) {
+  // 获取四个权重值 缩放因子（scale factor）、偏移因子（offset factor）、均值（mean）和方差（variance）
   float* gamma = (float*)weightMap[lname + ".weight"].values;
   float* beta = (float*)weightMap[lname + ".bias"].values;
   float* mean = (float*)weightMap[lname + ".running_mean"].values;
   float* var = (float*)weightMap[lname + ".running_var"].values;
   int len = weightMap[lname + ".running_var"].count;
 
+  // 计算新的权重值
   float* scval = reinterpret_cast<float*>(malloc(sizeof(float) * len));
   for (int i = 0; i < len; i++) {
     scval[i] = gamma[i] / sqrt(var[i] + eps);
@@ -88,9 +90,12 @@ static IScaleLayer* addBatchNorm2d(INetworkDefinition *network, std::map<std::st
   }
   Weights power{ DataType::kFLOAT, pval, len };
 
+  // 将新的权重值添加到权重映射中
   weightMap[lname + ".scale"] = scale;
   weightMap[lname + ".shift"] = shift;
   weightMap[lname + ".power"] = power;
+
+  // 在网络中添加一个新的批量归一化层  scale * x + shift
   IScaleLayer* scale_1 = network->addScale(input, ScaleMode::kCHANNEL, shift, scale, power);
   assert(scale_1);
   return scale_1;

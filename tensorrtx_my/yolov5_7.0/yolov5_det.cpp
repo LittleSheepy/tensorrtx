@@ -135,6 +135,7 @@ int main(int argc, char** argv) {
   cudaSetDevice(kGpuId);
 
   std::string wts_name = "yolov5_7.0_LG.wts";
+  //std::string wts_name = "";
   std::string engine_name = "yolov5_7.0_LG.engine";
   bool is_p6 = false;
   float gd = 0.33f, gw = 0.50f;
