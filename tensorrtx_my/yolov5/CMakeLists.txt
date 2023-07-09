@@ -53,15 +53,15 @@ ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Windows")
 	set(CUDA_NVCC_PLAGS ${CUDA_NVCC_PLAGS};-std=c++11; -g; -G;-gencode; arch=compute_75;code=sm_75)
 	find_package(CUDA REQUIRED)
 	include_directories(${CUDA_INCLUDE_DIRS})
-	enable_language(CUDA)  # add this line, then no need to setup cuda path in vs
+	#enable_language(CUDA)  # add this line, then no need to setup cuda path in vs
 	
 	# tensorrt
-	set(TRT_DIR "C://tools//TensorRT-7.0.0.11//")  #3
+	set(TRT_DIR "D:/SDK/TensorRT-8.2.0.6//")  #3
 	include_directories(${TRT_DIR}\\include)
 	link_directories(${TRT_DIR}\\lib)
 	
 	# setup opencv
-	set(OpenCV_DIR "C:/tools/opencv/build/")  #2
+	set(OpenCV_DIR "D:/sheepy/tools/opencv455/build/")  #2
     find_package(OpenCV REQUIRED)
 	include_directories(${OpenCV_INCLUDE_DIRS})
 	# Threads

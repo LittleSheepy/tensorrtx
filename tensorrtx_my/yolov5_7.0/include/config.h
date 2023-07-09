@@ -23,8 +23,8 @@ constexpr static int kClsNumClass = 1000;
 constexpr static int kBatchSize = 1;
 
 // Yolo's input width and height must by divisible by 32
-constexpr static int kInputH = 320;
-constexpr static int kInputW = 320;
+constexpr static int kInputH = 1024;
+constexpr static int kInputW = 1024;
 
 // Classfication model's input shape
 constexpr static int kClsInputH = 224;
@@ -46,7 +46,7 @@ constexpr static float kIgnoreThresh = 0.1f;
 
 // NMS overlapping thresh and final detection confidence thresh
 const static float kNmsThresh = 0.45f;
-const static float kConfThresh = 0.5f;
+const static float kConfThresh = 0.6f;
 
 const static int kGpuId = 0;
 

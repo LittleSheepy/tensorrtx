@@ -194,11 +194,12 @@ int main(int argc, char** argv) {
 
   // batch predict
   for (size_t i = 0; i < file_names.size(); i += kBatchSize) {
+    std::cout << "i:" << i << std::endl;
     // Get a batch of images
     std::vector<cv::Mat> img_batch;
     std::vector<std::string> img_name_batch;
     for (size_t j = i; j < i + kBatchSize && j < file_names.size(); j++) {
-      cv::Mat img = cv::imread(img_dir + "/" + file_names[j]);
+        cv::Mat img = cv::imread(img_dir + "/" + file_names[j]);
       img_batch.push_back(img);
       img_name_batch.push_back(file_names[j]);
     }
@@ -220,10 +221,15 @@ int main(int argc, char** argv) {
     for (size_t b = 0; b < img_name_batch.size(); b++) {
       auto& res = res_batch[b];
       cv::Mat img = img_batch[b];
+      cv::Mat img_org;
+      img_batch[b].copyTo(img_org);
 
       auto masks = process_mask(&cpu_output_buffer2[b * kOutputSize2], kOutputSize2, res);
       draw_mask_bbox(img, res, masks, labels_map);
-      cv::imwrite("_" + img_name_batch[b], img);
+      if (res.size() > 0) {
+          cv::imwrite("result/" + img_name_batch[b], img);
+          cv::imwrite("NG/" + img_name_batch[b], img_org);
+      }
     }
   }
 

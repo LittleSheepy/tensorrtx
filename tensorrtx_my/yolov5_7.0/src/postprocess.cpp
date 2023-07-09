@@ -24,6 +24,15 @@ cv::Rect get_rect(cv::Mat& img, float bbox[4]) {
     t = t / r_h;
     b = b / r_h;
   }
+  if (l < 0) {
+      l = 0;
+  }
+  if (b >= 2048) {
+      b = 2048;
+  }
+  if (r >= 2448) {
+      r = 2448;
+  }
   return cv::Rect(round(l), round(t), round(r - l), round(b - t));
 }
 
@@ -93,6 +102,9 @@ void draw_bbox(std::vector<cv::Mat>& img_batch, std::vector<std::vector<Detectio
 
 static cv::Rect get_downscale_rect(float bbox[4], float scale) {
   float left = bbox[0] - bbox[2] / 2;
+  if (left < 0) {
+      left = 0;
+  }
   float top = bbox[1] - bbox[3] / 2;
   float right = bbox[0] + bbox[2] / 2;
   float bottom = bbox[1] + bbox[3] / 2;
@@ -110,11 +122,17 @@ std::vector<cv::Mat> process_mask(const float* proto, int proto_size, std::vecto
     auto r = get_downscale_rect(dets[i].bbox, 4);
     for (int x = r.x; x < r.x + r.width; x++) {
       for (int y = r.y; y < r.y + r.height; y++) {
+          if ((x<=0)||(y<=0)) {
+              continue;
+          }
         float e = 0.0f;
         for (int j = 0; j < 32; j++) {
           e += dets[i].mask[j] * proto[j * proto_size / 32 + y * mask_mat.cols + x];
         }
         e = 1.0f / (1.0f + expf(-e));
+        if ((x>= kInputW / 4)||(y>= kInputH / 4)) {
+            continue;
+        }
         mask_mat.at<float>(y, x) = e;
       }
     }
@@ -158,6 +176,9 @@ void draw_mask_bbox(cv::Mat& img, std::vector<Detection>& dets, std::vector<cv::
     cv::Rect r = get_rect(img, dets[i].bbox);
     for (int x = r.x; x < r.x + r.width; x++) {
       for (int y = r.y; y < r.y + r.height; y++) {
+          if ((x <= 0) || (y <= 0)) {
+              continue;
+          }
         float val = img_mask.at<float>(y, x);
         if (val <= 0.5) continue;
         img.at<cv::Vec3b>(y, x)[0] = img.at<cv::Vec3b>(y, x)[0] / 2 + bgr[0] / 2;
