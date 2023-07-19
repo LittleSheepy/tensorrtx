@@ -19,9 +19,9 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_BUILD_TYPE Debug)
 #设置可执行文件输出目录
 #SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_SOURCE_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG D:/04Bin/)
 #设置库输出目录
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${PROJECT_SOURCE_DIR}/bin/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG D:/04Bin/)
 #option 选项开关
 #启用后，将在中使用CUDA运行时库的静态版本CUDA_LIBRARIES。
 option(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
@@ -54,11 +54,11 @@ ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Windows")
 	set(CUDA_NVCC_PLAGS ${CUDA_NVCC_PLAGS};-std=c++11; -g; -G;-gencode; arch=compute_75;code=sm_75)
 	find_package(CUDA REQUIRED)
 	include_directories(${CUDA_INCLUDE_DIRS})
-	link_directories("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.1/lib/x64/")
+	link_directories("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.3/lib/x64/")
 	enable_language(CUDA)  # add this line, then no need to setup cuda path in vs
 	
 	# tensorrt
-	set(TRT_DIR "D:/tools/TensorRT-8.2.0.6//")  #3
+	set(TRT_DIR "D:/tools/TensorRT-8.0.1.6-cu113//")  #3
 	include_directories(${TRT_DIR}\\include)
 	link_directories(${TRT_DIR}\\lib)
 	

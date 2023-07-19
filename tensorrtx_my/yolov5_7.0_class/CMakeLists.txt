@@ -74,7 +74,7 @@ ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Windows")
 	enable_language(CUDA)  # add this line, then no need to setup cuda path in vs
 	
 	# tensorrt
-	set(TRT_DIR "D://tools//TensorRT-8.0.1.6-cu11.3//")  #3
+	set(TRT_DIR "D://tools//TensorRT-8.0.1.6-cu113//")  #3
 	include_directories(${TRT_DIR}\\include/)
 	link_directories(${TRT_DIR}\\lib)
 	
