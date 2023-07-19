@@ -40,7 +40,6 @@ private:
     void _do_inference();
 
 private:
-    static Logger       m_gLogger;
     IRuntime*           m_runtime   = nullptr;              // 
     ICudaEngine*        m_engine    = nullptr;              // 
     IExecutionContext*  m_context   = nullptr;              // 

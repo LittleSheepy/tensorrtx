@@ -8,3 +8,10 @@
 tensorrtx_my/yolov5_7.0/build/
 tensorrtx_my/yolov5_7.0_class/build/
 tensorrtx_my/yolov5_7.0/build/*
+tensorrtx_my/yolov5_7.0_class/lib
+tensorrtx_my/yolov5_7.0/bin/lib/
+tensorrtx_my/yolov5_7.0/bin/
+tensorrtx_my/yolov5_7.0_class/lib/
+tensorrtx_my/yolov5_7.0_class/lib/yolov5_7_0.lib
+tensorrtx_my/yolov5_7.0_class/lib/yolov5_7_0.lib
+tensorrtx_my/yolov5_7.0_class/lib/yolov5_7_0.exp
