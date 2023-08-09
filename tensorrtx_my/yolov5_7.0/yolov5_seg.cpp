@@ -226,11 +226,16 @@ int main(int argc, char** argv) {
 
       auto masks = process_mask(&cpu_output_buffer2[b * kOutputSize2], kOutputSize2, res);
       draw_mask_bbox(img, res, masks, labels_map);
+      std::string name = img_name_batch[b].replace(img_name_batch[b].size() - 3, 3, "jpg");
       if (res.size() > 0) {
-          cv::imwrite("NG/" + img_name_batch[b], img_org);
+          cv::imwrite("NG/" + name, img_org);
+
           cv::Mat img_combined;
           cv::vconcat(img, img_org, img_combined);
-          cv::imwrite("result/" + img_name_batch[b], img_combined);
+          cv::imwrite("result/" + name, img_combined);
+      }
+      else {
+          cv::imwrite("OK/" + name, img_org);
       }
     }
   }

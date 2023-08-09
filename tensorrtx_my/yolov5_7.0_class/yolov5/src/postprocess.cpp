@@ -115,6 +115,7 @@ std::vector<cv::Mat> process_mask(const float* proto, int proto_size, std::vecto
   std::vector<cv::Mat> masks;
   for (size_t i = 0; i < dets.size(); i++) {
     cv::Mat mask_mat = cv::Mat::zeros(kInputH / 4, kInputW / 4, CV_32FC1);
+    float aera = 0;
     auto r = get_downscale_rect(dets[i].bbox, 4);
     for (int x = r.x; x < r.x + r.width; x++) {
       for (int y = r.y; y < r.y + r.height; y++) {
@@ -123,9 +124,13 @@ std::vector<cv::Mat> process_mask(const float* proto, int proto_size, std::vecto
           e += dets[i].mask[j] * proto[j * proto_size / 32 + y * mask_mat.cols + x];
         }
         e = 1.0f / (1.0f + expf(-e));
+        if (e > 0.5) {
+            aera = aera + 1;
+        }
         mask_mat.at<float>(y, x) = e;
       }
     }
+    //dets[i].aera = aera;
     cv::resize(mask_mat, mask_mat, cv::Size(kInputW, kInputH));
     masks.push_back(mask_mat);
   }

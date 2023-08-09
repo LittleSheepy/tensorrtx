@@ -18,7 +18,7 @@ const static char* kOutputTensorName = "prob";
 constexpr static int kNumClass = 1;
 
 // Classfication model's number of classes
-constexpr static int kClsNumClass = 1000;
+constexpr static int kClsNumClass = 1;
 
 constexpr static int kBatchSize = 10;
 
@@ -46,7 +46,7 @@ constexpr static float kIgnoreThresh = 0.1f;
 
 // NMS overlapping thresh and final detection confidence thresh
 const static float kNmsThresh = 0.45f;
-const static float kConfThresh = 0.2f;
+const static float kConfThresh = 0.6f;
 
 const static int kGpuId = 0;
 

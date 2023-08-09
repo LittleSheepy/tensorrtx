@@ -8,7 +8,7 @@ CYoloDet::~CYoloDet(){
 	CUDA_CHECK(cudaFree(m_gpu_buffers[0]));
 	CUDA_CHECK(cudaFree(m_gpu_buffers[1]));
 	delete[] m_cpu_output_buffer;
-	cuda_preprocess_destroy();
+	cuda_preprocess_destroy(m_img_buffer_host, m_img_buffer_device);
 	// Destroy the engine
 	m_context->destroy();
 	m_engine->destroy();
@@ -24,7 +24,7 @@ void CYoloDet::Init() {
 	// 3.创建stream
 	CUDA_CHECK(cudaStreamCreate(&m_stream));
 	// 4.Init CUDA preprocessing
-	cuda_preprocess_init(kMaxInputImageSize);
+	cuda_preprocess_init(kMaxInputImageSize, m_img_buffer_host, m_img_buffer_device);
 	// 5.Prepare cpu and gpu buffers
 	_prepare_buffers();
 
@@ -33,7 +33,7 @@ void CYoloDet::Init() {
 std::vector<Detection> CYoloDet::Predict(cv::Mat& img) {
 	std::vector<cv::Mat> img_batch;
 	img_batch.push_back(img);
-	cuda_batch_preprocess(img_batch, m_gpu_buffers[m_inputIndex], kInputW, kInputH, m_stream);
+	cuda_batch_preprocess(img_batch, m_gpu_buffers[m_inputIndex], kInputW, kInputH, m_stream, m_img_buffer_host, m_img_buffer_device);
 	_do_inference();
 
 	// NMS

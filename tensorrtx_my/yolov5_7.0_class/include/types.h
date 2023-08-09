@@ -20,3 +20,9 @@ struct alignas(float) Detection {
   float mask[32];
 };
 
+struct YoloCfg
+{
+    int kInputH = 320;
+    int kInputW = 320;
+};
+

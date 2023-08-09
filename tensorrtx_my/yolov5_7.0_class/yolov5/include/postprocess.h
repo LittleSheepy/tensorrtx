@@ -14,3 +14,5 @@ void draw_bbox(std::vector<cv::Mat>& img_batch, std::vector<std::vector<Detectio
 std::vector<cv::Mat> process_mask(const float* proto, int proto_size, std::vector<Detection>& dets);
 
 void draw_mask_bbox(cv::Mat& img, std::vector<Detection>& dets, std::vector<cv::Mat>& masks, std::unordered_map<int, std::string>& labels_map);
+
+cv::Mat scale_mask(cv::Mat mask, cv::Mat img);

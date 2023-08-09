@@ -26,7 +26,7 @@
 using namespace nvinfer1;
 const static int kOutputSize = kMaxNumOutputBbox * sizeof(Detection) / sizeof(float) + 1;
 static Logger gLogger;
-class DLL_EXPORT CYoloDet :
+class CYoloDet :
     public IYoloDet
 {
 public:
@@ -46,6 +46,8 @@ private:
     cudaStream_t        m_stream    = nullptr;              // 
     float *             m_gpu_buffers[2];                   //
     float *             m_cpu_output_buffer = nullptr;      // 
+    uint8_t* m_img_buffer_host = nullptr;
+    uint8_t* m_img_buffer_device = nullptr;
     std::string         m_engine_name = "yolov5_7.0_LG.engine";
     //float               input[BATCH_SIZE * 3 * INPUT_H * INPUT_W];        // 图片数据
     //float               output[BATCH_SIZE * OUTPUT_SIZE];                // 输出数据

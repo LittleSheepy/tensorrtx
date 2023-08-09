@@ -1,8 +1,8 @@
 #include "preprocess.h"
 #include "cuda_utils.h"
 
-static uint8_t* img_buffer_host = nullptr;
-static uint8_t* img_buffer_device = nullptr;
+//static uint8_t* img_buffer_host = nullptr;
+//static uint8_t* img_buffer_device = nullptr;
 
 struct AffineMatrix {
   float value[6];
@@ -95,7 +95,7 @@ __global__ void warpaffine_kernel(
 void cuda_preprocess(
     uint8_t* src, int src_width, int src_height,
     float* dst, int dst_width, int dst_height,
-    cudaStream_t stream) {
+    cudaStream_t stream, uint8_t*& img_buffer_host, uint8_t*& img_buffer_device) {
 
   int img_size = src_width * src_height * 3;
   // copy data to pinned memory
@@ -131,22 +131,22 @@ void cuda_preprocess(
 
 void cuda_batch_preprocess(std::vector<cv::Mat>& img_batch,
                            float* dst, int dst_width, int dst_height,
-                           cudaStream_t stream) {
+                           cudaStream_t stream, uint8_t*& img_buffer_host, uint8_t*& img_buffer_device) {
   int dst_size = dst_width * dst_height * 3;
   for (size_t i = 0; i < img_batch.size(); i++) {
-    cuda_preprocess(img_batch[i].ptr(), img_batch[i].cols, img_batch[i].rows, &dst[dst_size * i], dst_width, dst_height, stream);
+    cuda_preprocess(img_batch[i].ptr(), img_batch[i].cols, img_batch[i].rows, &dst[dst_size * i], dst_width, dst_height, stream, img_buffer_host, img_buffer_device);
     CUDA_CHECK(cudaStreamSynchronize(stream));
   }
 }
 
-void cuda_preprocess_init(int max_image_size) {
+void cuda_preprocess_init(int max_image_size, uint8_t* &img_buffer_host, uint8_t*& img_buffer_device) {
   // prepare input data in pinned memory
   CUDA_CHECK(cudaMallocHost((void**)&img_buffer_host, max_image_size * 3));
   // prepare input data in device memory
   CUDA_CHECK(cudaMalloc((void**)&img_buffer_device, max_image_size * 3));
 }
 
-void cuda_preprocess_destroy() {
+void cuda_preprocess_destroy(uint8_t*& img_buffer_host, uint8_t*& img_buffer_device) {
   CUDA_CHECK(cudaFree(img_buffer_device));
   CUDA_CHECK(cudaFreeHost(img_buffer_host));
 }

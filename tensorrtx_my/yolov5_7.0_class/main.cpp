@@ -2,6 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include "IYoloDet.h"
 #include "IYoloCls.h"
+#include "IYoloSeg.h"
 
 bool parse_args(int argc, char** argv, std::string& wts, std::string& engine, float& gd, float& gw, std::string& img_dir) {
 	if (argc < 4) return false;
@@ -144,6 +145,44 @@ int yolov5_cls_main(int argc, char** argv) {
 	}
 }
 
+/*
+-d yolov5s.engine images
+*/
+int yolov5_seg_main(int argc, char** argv) {
+	IYoloSeg* yolo_seg = createYoloSegInstance();
+	std::string wts_name = "";
+	std::string engine_name = "";
+	float gd = 0.0f, gw = 0.0f;
+	std::string img_dir;
+
+	if (!parse_args(argc, argv, wts_name, engine_name, gd, gw, img_dir)) {
+		std::cerr << "arguments not right!" << std::endl;
+		std::cerr << "./yolov5_cls -s [.wts] [.engine] [n/s/m/l/x or c gd gw]  // serialize model to plan file" << std::endl;
+		std::cerr << "./yolov5_cls -d [.engine] ../images  // deserialize plan file and run inference" << std::endl;
+		return -1;
+	}
+	if (argv[1] == "-s") {
+		yolo_seg->Init();
+		return 0;
+	}
+	yolo_seg->Init();
+	std::vector<std::string> file_names;
+	if (read_files_in_dir(img_dir.c_str(), file_names) < 0) {
+		std::cerr << "read_files_in_dir failed." << std::endl;
+		return -1;
+	}
+
+	//auto classes = read_classes("imagenet_classes.txt");
+	// batch predict
+	for (size_t i = 0; i < file_names.size(); i++) {
+		cv::Mat img = cv::imread(img_dir + "/" + file_names[i]);
+
+		std::vector<std::vector<Detection>> res_batch;
+		std::vector<std::vector<std::vector<cv::Point>>> contours;
+		auto& res = yolo_seg->Predict(img, res_batch, contours);
+		std::cout << "  " << res_batch[0].size() << std::endl;
+	}
+}
 int main(int argc, char** argv) {
-	yolov5_cls_main(argc, argv);
+	yolov5_seg_main(argc, argv);
 }
