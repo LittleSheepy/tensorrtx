@@ -1,5 +1,5 @@
 #include "CYoloSeg.h"
-
+#include <Windows.h>
 CYoloSeg::CYoloSeg() {
 }
 CYoloSeg::~CYoloSeg() {
@@ -35,12 +35,18 @@ std::vector<Detection> CYoloSeg::Predict(cv::Mat& img, std::vector<std::vector<D
 	img_batch.push_back(img);
 	cuda_batch_preprocess(img_batch, m_gpu_buffers[m_inputIndex], kInputW, kInputH, m_stream, m_img_buffer_host, m_img_buffer_device);
 	_do_inference();
-
+	char buf[128];
+	sprintf_s(buf, "1111111111111111\n");
+	OutputDebugStringA(buf);
 	// NMS
 	std::vector<std::vector<Detection>> res_batch;
 	batch_nms(res_batch, m_cpu_output_buffer1, img_batch.size(), kOutputSize1, kConfThresh, kNmsThresh);
+	sprintf_s(buf, "2222222222222222\n");
+	OutputDebugStringA(buf);
 	auto masks = process_mask(&m_cpu_output_buffer2[0], kOutputSize2, res_batch[0]);
 	printf(" size() %d", res_batch[0].size());
+	sprintf_s(buf, "222222222 %d\n", res_batch[0].size());
+	OutputDebugStringA(buf);
 	for (size_t i = 0; i < res_batch[0].size(); i++) {
 		cv::Mat img_mask = scale_mask(masks[i], img);
 		cv::Mat binary_mask;

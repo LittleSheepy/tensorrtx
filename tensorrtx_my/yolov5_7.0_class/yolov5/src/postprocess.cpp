@@ -104,6 +104,12 @@ static cv::Rect get_downscale_rect(float bbox[4], float scale) {
   float top = bbox[1] - bbox[3] / 2;
   float right = bbox[0] + bbox[2] / 2;
   float bottom = bbox[1] + bbox[3] / 2;
+  if (left < 0) {
+      left = 0;
+  }
+  if (top < 0) {
+      top = 0;
+  }
   left /= scale;
   top /= scale;
   right /= scale;
