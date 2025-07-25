@@ -2,11 +2,11 @@ import torch
 import sys
 import struct
 
-def main():
+def main(pth_path, wts_path):
   device = torch.device('cpu')
-  state_dict = torch.load(sys.argv[1], map_location=device)
+  state_dict = torch.load(pth_path, map_location=device)
 
-  f = open("unet.wts", 'w')
+  f = open(wts_path, 'w')
   f.write("{}\n".format(len(state_dict.keys())))
   for k, v in state_dict.items():
     print('key: ', k)
@@ -20,5 +20,7 @@ def main():
   f.close()
 
 if __name__ == '__main__':
-  main()
+  pth_path = r"D:\03GitHub\00myGitHub\tensorrtx\tensorrtx_wang\unet/unet_carvana_scale1.0_epoch2.pth"
+  wts_path = r"D:\03GitHub\00myGitHub\tensorrtx\tensorrtx_wang\unet/unet_carvana_scale1.0_epoch2.wts"
+  main(pth_path, wts_path)
 
